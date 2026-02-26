@@ -9,7 +9,7 @@ import plotly.express as px
 st.set_page_config(page_title="Market Dashboard", layout="wide")
 
 st.title("📈 Market Dashboard")
-st.caption("Daily data via Alpha Vantage. Optional live snapshot via Finnhub.")
+st.caption("Daily data via Alpha Vantage. Live snapshot via Finnhub.")
 
 # -----------------------------
 # Secrets
