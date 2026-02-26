@@ -87,10 +87,10 @@ def av_time_series(symbol: str, mode: str) -> pd.DataFrame:
     r.raise_for_status()
     j = r.json()
 
-    if "Information" in j:
-        raise ValueError(j["Information"])
-    if "Note" in j:
-        raise ValueError(j["Note"])
+    if "Information" in j or "Note" in j:
+        raise ValueError("ALPHAVANTAGE_LIMIT")
+    if "Error Message" in j:
+        raise ValueError("ALPHAVANTAGE_ERROR")
     if "Error Message" in j:
         raise ValueError(j["Error Message"])
 
@@ -182,20 +182,23 @@ with st.spinner("Fetching daily price data..."):
             if not df.empty:
                 data[sym] = df
         except Exception as e:
-            errors[sym] = str(e)
-            # If we hit rate limits, stop further calls to be nice
-            msg = errors[sym].lower()
-            if "frequency" in msg or "thank you for using alpha vantage" in msg or "call" in msg and "minute" in msg:
+            err = str(e)
+            if "ALPHAVANTAGE_LIMIT" in err:
+                errors[sym] = "Rate limit hit. Wait and try again (or reduce symbols)."
                 break
+            elif "ALPHAVANTAGE_ERROR" in err:
+                errors[sym] = "Provider error (symbol / endpoint)."
+            else:
+                errors[sym] = "Provider error."
 
         # Free-tier friendly pacing for multi-symbol loads (only matters on cold cache)
         if i < len(symbols) - 1:
             time.sleep(12)
 
 if errors:
-    st.warning("Some symbols failed to load:")
-    for sym, msg in errors.items():
-        st.write(f"- **{sym}**: {msg}")
+    st.warning("Some symbols failed to load (provider limits / access).")
+    for sym in errors.keys():
+        st.write(f"- **{sym}**: Provider returned an error. Try fewer symbols or wait and refresh.")
 
 if not data or primary not in data:
     st.error("No usable data returned. Try fewer symbols (e.g., AAPL/MSFT/SPY) and avoid rapid refreshes.")
